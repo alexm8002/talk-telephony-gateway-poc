@@ -1,6 +1,6 @@
 # Nextcloud Talk Telephony Gateway
 
-SIP/PSTN gateway for Nextcloud Talk.
+An independent open-source SIP/PSTN gateway for Nextcloud Talk. This project is not affiliated with or endorsed by Nextcloud GmbH.
 
 The gateway connects Nextcloud Talk to an Asterisk/FreePBX server and supports incoming and outgoing telephone calls.
 
