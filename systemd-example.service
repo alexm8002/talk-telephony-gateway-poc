@@ -1,0 +1,21 @@
+[Unit]
+Description=Nextcloud Talk Telephony Gateway POC
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/talk-telephony-gateway-poc
+EnvironmentFile=/opt/talk-telephony-gateway-poc/.env
+ExecStart=/opt/talk-telephony-gateway-poc/telephony-gateway-poc
+Restart=on-failure
+RestartSec=3
+User=telephony-gateway
+Group=telephony-gateway
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
