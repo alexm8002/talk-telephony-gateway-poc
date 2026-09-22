@@ -123,6 +123,7 @@ type internalClientMessage struct {
 	Type          string                        `json:"type"`
 	Dialout       *dialoutInternalClientMessage `json:"dialout,omitempty"`
 	AddSession    *addSessionMessage            `json:"addsession,omitempty"`
+	InCall        *inCallMessage                `json:"incall,omitempty"`
 	RemoveSession *removeSessionMessage         `json:"removesession,omitempty"`
 }
 
@@ -145,7 +146,12 @@ type addSessionMessage struct {
 	RoomID    string             `json:"roomid"`
 	UserID    string             `json:"userid,omitempty"`
 	User      map[string]any     `json:"user,omitempty"`
+	InCall    *int               `json:"incall,omitempty"`
 	Options   *addSessionOptions `json:"options,omitempty"`
+}
+
+type inCallMessage struct {
+	InCall int `json:"incall"`
 }
 
 type removeSessionMessage struct {
@@ -631,6 +637,24 @@ func (g *gateway) openTalkCallSession(roomID, callID, number, actorID, actorType
 		}
 	}
 
+	// The real internal gateway session is the MCU audio publisher.
+	// 1 = in-call, 2 = with-audio, therefore 3 = in-call | with-audio.
+	gatewayInCall := clientMessage{
+		ID:   newID("incall"),
+		Type: "internal",
+		Internal: &internalClientMessage{
+			Type: "incall",
+			InCall: &inCallMessage{
+				InCall: 3,
+			},
+		},
+	}
+	if err := conn.WriteJSON(gatewayInCall); err != nil {
+		return nil, fmt.Errorf("set HPB gateway session in-call state: %w", err)
+	}
+	log.Printf("HPB call internal session marked in-call with audio: session=%s room=%s incall=3", s.sessionID, roomID)
+
+	phoneInCall := 9 // 1 = in-call, 8 = with-phone.
 	add := clientMessage{
 		ID:   newID("add"),
 		Type: "internal",
@@ -639,6 +663,7 @@ func (g *gateway) openTalkCallSession(roomID, callID, number, actorID, actorType
 			AddSession: &addSessionMessage{
 				SessionID: callID,
 				RoomID:    roomID,
+				InCall:    &phoneInCall,
 				User: map[string]any{
 					"type":   "phone",
 					"callid": callID,
@@ -653,7 +678,7 @@ func (g *gateway) openTalkCallSession(roomID, callID, number, actorID, actorType
 	if err := conn.WriteJSON(add); err != nil {
 		return nil, fmt.Errorf("add HPB virtual phone session: %w", err)
 	}
-	log.Printf("HPB virtual phone session added: room=%s virtual=%s number=%s actor=%s/%s", roomID, callID, number, actorType, actorID)
+	log.Printf("HPB virtual phone session added: room=%s virtual=%s number=%s actor=%s/%s incall=9", roomID, callID, number, actorType, actorID)
 
 	// Keep this per-call internal websocket active while SIP/RTP is alive. The
 	// signaling server pings less often than some reverse-proxy idle timeouts.
